@@ -41,6 +41,7 @@ env/
 .pytest_cache/
 .coverage
 htmlcov/
+tests/debug/
 
 # Home Assistant
 custom_components/**/__pycache__/
