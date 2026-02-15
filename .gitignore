@@ -43,5 +43,11 @@ env/
 htmlcov/
 tests/debug/
 
+# Debug logs
+debug/
+
+# CLI config
+config.json
+
 # Home Assistant
 custom_components/**/__pycache__/

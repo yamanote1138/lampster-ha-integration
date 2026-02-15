@@ -41,11 +41,14 @@ class LampsterClient:
         self._state = LampState(is_on=False, mode="off")
 
     @staticmethod
-    async def discover(timeout: float = 10.0) -> list[BLEDevice]:
+    async def discover(timeout: float = 5.0, stop_on_first: bool = True) -> list[BLEDevice]:
         """Discover Lampster devices nearby.
 
+        Uses early-exit strategy to stop scanning as soon as a device is found.
+
         Args:
-            timeout: Scan timeout in seconds
+            timeout: Scan timeout in seconds (default: 5, reduced from 10)
+            stop_on_first: Stop scanning after finding first device (default: True for speed)
 
         Returns:
             List of discovered BLE devices matching Lampster pattern
@@ -54,12 +57,36 @@ class LampsterClient:
             DiscoveryError: If no devices are found
         """
         _LOGGER.info("Scanning for Lampster devices...")
-        devices = await BleakScanner.discover(timeout=timeout)
 
-        # Filter for devices that match Lampster pattern
-        lampster_devices = [
-            d for d in devices if d.name and DEVICE_NAME_PREFIX in d.name
-        ]
+        if stop_on_first:
+            # Early exit: stop as soon as we find one matching device
+            lampster_devices = []
+            seen_addresses = set()
+
+            def detection_callback(device, advertisement_data):
+                # Check if device name contains "Lamp" and not already found
+                if device.name and DEVICE_NAME_PREFIX in device.name:
+                    if device.address not in seen_addresses:
+                        seen_addresses.add(device.address)
+                        lampster_devices.append(device)
+                        return True  # Stop scanning
+                return False
+
+            scanner = BleakScanner(detection_callback=detection_callback)
+            await scanner.start()
+
+            # Wait up to timeout or until device found
+            start_time = asyncio.get_event_loop().time()
+            while not lampster_devices and (asyncio.get_event_loop().time() - start_time) < timeout:
+                await asyncio.sleep(0.1)
+
+            await scanner.stop()
+        else:
+            # Traditional scan: wait for full timeout
+            devices = await BleakScanner.discover(timeout=timeout)
+            lampster_devices = [
+                d for d in devices if d.name and DEVICE_NAME_PREFIX in d.name
+            ]
 
         if not lampster_devices:
             raise DiscoveryError("No Lampster devices found")
@@ -116,25 +143,62 @@ class LampsterClient:
     async def power_on(self):
         """Turn the lamp on.
 
+        Sets lamp to warm white at 50% brightness.
+
         Raises:
             ConnectionError: If not connected
             CommandError: If command fails
         """
-        await self._write_mode(MODE_POWER_ON)
-        self._state.is_on = True
-        _LOGGER.info("Lamp powered on")
+        if not self._client or not self._client.is_connected:
+            raise ConnectionError("Not connected to device")
+
+        try:
+            # Power on with warm white at 50% brightness
+            from .models import WhiteColor
+
+            await self._write_mode(MODE_POWER_ON)
+            await asyncio.sleep(0.4)  # Device needs time to process mode change
+            await self._write_mode(MODE_WHITE)
+            await self._client.write_gatt_char(CHAR_WHITE, bytes([50, 0]), response=False)
+
+            self._state.is_on = True
+            self._state.mode = "white"
+            self._state.white_color = WhiteColor(50, 0)
+            _LOGGER.info("Lamp powered on (warm white 50%)")
+        except Exception as e:
+            raise CommandError(f"Failed to power on: {e}") from e
 
     async def power_off(self):
         """Turn the lamp off.
 
+        Sets colors to zero and switches to white mode before powering off.
+
         Raises:
             ConnectionError: If not connected
             CommandError: If command fails
         """
-        await self._write_mode(MODE_POWER_OFF)
-        self._state.is_on = False
-        self._state.mode = "off"
-        _LOGGER.info("Lamp powered off")
+        if not self._client or not self._client.is_connected:
+            raise ConnectionError("Not connected to device")
+
+        try:
+            # Switch to white mode first (required for power off to work from RGB mode)
+            await self._write_mode(MODE_WHITE)
+            await asyncio.sleep(0.4)  # Device needs time to process mode change
+
+            # Set WHITE and RGB to zero AFTER mode switch
+            await self._client.write_gatt_char(CHAR_WHITE, bytes([0, 0]), response=False)
+            await asyncio.sleep(0.1)
+            await self._client.write_gatt_char(CHAR_RGB, bytes([0, 0, 0]), response=False)
+            await asyncio.sleep(0.4)  # Let colors zero out
+
+            # Now send power off
+            await self._write_mode(MODE_POWER_OFF)
+
+            self._state.is_on = False
+            self._state.mode = "off"
+            _LOGGER.info("Lamp powered off")
+        except Exception as e:
+            raise CommandError(f"Failed to power off: {e}") from e
 
     async def set_rgb_mode(self):
         """Switch to RGB mode.
@@ -172,13 +236,22 @@ class LampsterClient:
             raise ConnectionError("Not connected to device")
 
         try:
-            # Switch to RGB mode first
-            await self.set_rgb_mode()
-
-            # Write color (without response, as per Noki's char-write-cmd)
+            # Write color data FIRST (device may need this before mode switch)
             await self._client.write_gatt_char(CHAR_RGB, color.to_bytes(), response=False)
+            await asyncio.sleep(0.2)  # Let color data settle
+
+            # Switch to RGB mode
+            await self.set_rgb_mode()
+            await asyncio.sleep(0.4)  # Device needs time to process mode change
+
+            # If lamp is off, power it on
+            if not self._state.is_on:
+                await self._write_mode(MODE_POWER_ON)
+                await asyncio.sleep(0.4)
+
             _LOGGER.info(f"Set RGB color: {color}")
 
+            self._state.is_on = True
             self._state.rgb_color = color
         except Exception as e:
             raise CommandError(f"Failed to set RGB color: {e}") from e
@@ -197,22 +270,103 @@ class LampsterClient:
             raise ConnectionError("Not connected to device")
 
         try:
-            # Switch to white mode first
-            await self.set_white_mode()
-
-            # Write color (without response, as per Noki's char-write-cmd)
+            # Write color data FIRST (device may need this before mode switch)
             await self._client.write_gatt_char(CHAR_WHITE, color.to_bytes(), response=False)
+            await asyncio.sleep(0.2)  # Let color data settle
+
+            # Switch to white mode
+            await self.set_white_mode()
+            await asyncio.sleep(0.4)  # Device needs time to process mode change
+
+            # If lamp is off, power it on
+            if not self._state.is_on:
+                await self._write_mode(MODE_POWER_ON)
+                await asyncio.sleep(0.4)
+
             _LOGGER.info(f"Set white color: {color}")
 
+            self._state.is_on = True
             self._state.white_color = color
         except Exception as e:
             raise CommandError(f"Failed to set white color: {e}") from e
 
+    async def read_state(self) -> LampState:
+        """Read current state from device.
+
+        Reads actual values from device characteristics and returns parsed state.
+        Useful for verification, reconnection sync, or detecting manual changes.
+
+        Returns:
+            LampState with current device values
+
+        Raises:
+            ConnectionError: If not connected
+            CommandError: If read fails
+        """
+        if not self._client or not self._client.is_connected:
+            raise ConnectionError("Not connected to device")
+
+        try:
+            # Read all characteristics
+            mode_bytes = await self._client.read_gatt_char(CHAR_MODE)
+            rgb_bytes = await self._client.read_gatt_char(CHAR_RGB)
+            white_bytes = await self._client.read_gatt_char(CHAR_WHITE)
+
+            # Parse mode
+            mode_val = mode_bytes[0]
+            is_on = mode_val in (MODE_POWER_ON, MODE_RGB, MODE_WHITE)
+
+            if mode_val == MODE_RGB or mode_val == MODE_POWER_ON:
+                mode = "rgb" if mode_val == MODE_RGB else "white"
+            elif mode_val == MODE_WHITE:
+                mode = "white"
+            elif mode_val == MODE_POWER_OFF or mode_val == MODE_OFF:
+                mode = "off"
+            else:
+                mode = "unknown"
+
+            # Parse RGB (3 bytes: r, g, b)
+            rgb_color = None
+            if len(rgb_bytes) >= 3:
+                rgb_color = RGBColor(rgb_bytes[0], rgb_bytes[1], rgb_bytes[2])
+
+            # Parse WHITE (2 bytes: warm, cold)
+            white_color = None
+            if len(white_bytes) >= 2:
+                white_color = WhiteColor(white_bytes[0], white_bytes[1])
+
+            state = LampState(
+                is_on=is_on,
+                mode=mode,
+                rgb_color=rgb_color,
+                white_color=white_color
+            )
+
+            _LOGGER.debug(f"Read state from device: {state}")
+            return state
+
+        except Exception as e:
+            raise CommandError(f"Failed to read state: {e}") from e
+
+    async def refresh_state(self):
+        """Refresh local state by reading from device.
+
+        Updates internal state tracking with actual device values.
+        Useful after reconnection or to detect manual button presses.
+
+        Raises:
+            ConnectionError: If not connected
+            CommandError: If read fails
+        """
+        self._state = await self.read_state()
+        _LOGGER.info("State refreshed from device")
+
     @property
     def state(self) -> LampState:
-        """Get current lamp state.
+        """Get current lamp state (locally tracked).
 
-        Note: State is tracked locally as the device doesn't support reading.
+        Returns local state that may be out of sync with device.
+        Use read_state() or refresh_state() to get actual device values.
         """
         return self._state
 
