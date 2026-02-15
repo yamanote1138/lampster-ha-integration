@@ -107,7 +107,8 @@ class LampsterClient:
             raise ConnectionError("Not connected to device")
 
         try:
-            await self._client.write_gatt_char(CHAR_MODE, bytes([mode]))
+            # Try write-without-response for mode switching
+            await self._client.write_gatt_char(CHAR_MODE, bytes([mode]), response=False)
             _LOGGER.debug(f"Wrote mode: 0x{mode:02x}")
         except Exception as e:
             raise CommandError(f"Failed to write mode: {e}") from e
@@ -174,8 +175,8 @@ class LampsterClient:
             # Switch to RGB mode first
             await self.set_rgb_mode()
 
-            # Write color
-            await self._client.write_gatt_char(CHAR_RGB, color.to_bytes())
+            # Write color (without response, as per Noki's char-write-cmd)
+            await self._client.write_gatt_char(CHAR_RGB, color.to_bytes(), response=False)
             _LOGGER.info(f"Set RGB color: {color}")
 
             self._state.rgb_color = color
@@ -199,8 +200,8 @@ class LampsterClient:
             # Switch to white mode first
             await self.set_white_mode()
 
-            # Write color
-            await self._client.write_gatt_char(CHAR_WHITE, color.to_bytes())
+            # Write color (without response, as per Noki's char-write-cmd)
+            await self._client.write_gatt_char(CHAR_WHITE, color.to_bytes(), response=False)
             _LOGGER.info(f"Set white color: {color}")
 
             self._state.white_color = color

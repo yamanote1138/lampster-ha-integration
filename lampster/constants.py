@@ -5,12 +5,13 @@ All characteristic UUIDs and command values are based on Noki's reverse engineer
 """
 
 # BLE Service and Characteristic UUIDs
-# Note: These are typical UUIDs for devices like this. May need adjustment
-# based on actual device enumeration during testing.
-SERVICE_UUID = "0000ffe5-0000-1000-8000-00805f9b34fb"
-CHAR_MODE = "0000ffe9-0000-1000-8000-00805f9b34fb"  # Characteristic handle 0x0021
-CHAR_WHITE = "0000ffea-0000-1000-8000-00805f9b34fb"  # Characteristic handle 0x0025
-CHAR_RGB = "0000ffeb-0000-1000-8000-00805f9b34fb"  # Characteristic handle 0x002a
+# Discovered via characteristic enumeration on actual device
+# Based on handles from Noki's documentation:
+#   0x0021 (mode), 0x0025 (white), 0x002a (RGB)
+SERVICE_UUID = "01ff5553-ba5e-f4ee-5ca1-eb1e5e4b1ce0"
+CHAR_MODE = "01ff5554-ba5e-f4ee-5ca1-eb1e5e4b1ce0"    # Handle 0x0020 (≈ 0x0021)
+CHAR_WHITE = "01ff5556-ba5e-f4ee-5ca1-eb1e5e4b1ce0"  # Handle 0x0024 (≈ 0x0025)
+CHAR_RGB = "01ff5559-ba5e-f4ee-5ca1-eb1e5e4b1ce0"    # Handle 0x0029 (≈ 0x002a)
 
 # Mode control commands (written to CHAR_MODE)
 MODE_POWER_ON = 0xC0

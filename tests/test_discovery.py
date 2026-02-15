@@ -52,7 +52,9 @@ async def main():
         for i, device in enumerate(devices, 1):
             print(f"{i}. Name: {device.name}")
             print(f"   Address: {device.address}")
-            print(f"   RSSI: {device.rssi} dBm")
+            # RSSI not always available on macOS
+            if hasattr(device, 'rssi') and device.rssi is not None:
+                print(f"   RSSI: {device.rssi} dBm")
             print()
 
         # If devices found, offer to enumerate characteristics
@@ -70,8 +72,8 @@ async def main():
             print(f"# await discover_characteristics('{devices[0].address}')")
             print()
 
-            # Uncomment this to see all characteristics:
-            # await discover_characteristics(devices[0].address)
+            # Enumerate characteristics to find correct UUIDs
+            await discover_characteristics(devices[0].address)
 
     except Exception as e:
         print(f"\n✗ Error: {e}")

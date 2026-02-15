@@ -11,8 +11,8 @@ from lampster.models import RGBColor
 
 logging.basicConfig(level=logging.INFO)
 
-# TODO: Update with your device address from test_discovery.py
-DEVICE_ADDRESS = "XX:XX:XX:XX:XX:XX"
+# Device address from test_discovery.py
+DEVICE_ADDRESS = "66C9BEF2-A12D-B137-E5CE-A2B780CE0B8A"
 
 
 async def main():
