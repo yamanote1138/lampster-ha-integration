@@ -1,258 +1,255 @@
 # The Lampster - Home Assistant Integration
 
-Home Assistant custom integration for controlling The Lampster RGB Bluetooth lamp.
-
-## 🙏 Attribution
-
-**This integration is based on the protocol documentation from [Noki's The Lampster project](https://github.com/Noki/the-lampster).**
-
-All protocol information, BLE characteristic mappings, and command specifications come from Noki's excellent reverse engineering work. This project would not be possible without their documentation. Please visit and ⭐ star [their repository](https://github.com/Noki/the-lampster)!
+Home Assistant custom integration for The Lampster RGB Bluetooth lamp (Model: LA-2017B).
 
 ## Features
 
-- ✨ **Full RGB color control** - 16.7 million colors (0-100% per channel)
-- 🌡️ **White color temperature** - Warm to cold white adjustment
-- 💡 **Brightness control** - Smooth dimming
-- 🔍 **Automatic device discovery** - Find your Lampster via Bluetooth
-- 🏠 **Native Home Assistant integration** - Full UI support
-- 🔄 **Mode switching** - Seamless RGB and white mode transitions
-
-## Current Status
-
-**Phase 1: Local Testing** ✅ **COMPLETE** (v0.2.0)
-
-The core Python library and BLE protocol are fully working:
-- ✅ Discover Lampster devices via BLE
-- ✅ RGB color control (7+ colors tested and working)
-- ✅ White color temperature control (10 variations tested - 100% success)
-- ✅ Mode switching (RGB ↔ WHITE)
-- ✅ Protocol fix: MODE characteristic requires `response=True`
-- ✅ Comprehensive test suite with automatic result recording
-- ✅ Button control behavior documented
-
-**Known Behavior:**
-- BLE control and button control are mutually exclusive (expected)
-- BLE POWER_OFF command doesn't work (use WHITE mode to restore button)
-- Device auto-powers on when plugged in
-
-**Phase 2: Home Assistant Integration** 🚧 **READY TO START**
-
-Ready to build the full HA custom component on top of the validated core library.
+- ✅ **Automatic Bluetooth Discovery** - Device appears automatically in HA
+- ✅ **RGB Color Control** - Full RGB color picker support
+- ✅ **Color Temperature** - Warm to cool white (2700K - 6500K)
+- ✅ **Brightness Control** - Adjust light intensity
+- ✅ **Power Control** - Turn on/off
+- ✅ **State Tracking** - Reads actual device state
+- ✅ **Local Control** - No cloud required
 
 ## Requirements
 
-- **Python**: 3.11 or higher
-- **Bluetooth**: Built-in or USB Bluetooth adapter
-- **Platform**: macOS (Phase 1), Linux/Home Assistant (Phase 2)
-- **The Lampster**: The actual lamp device
+- Home Assistant 2023.1 or newer
+- Bluetooth adapter with BLE support
+- Python 3.11 or newer
+- The Lampster device (Model: LA-2017B)
 
-## Quick Start (Phase 1: Local Testing)
+## Installation
 
-### Installation
+### Method 1: HACS (Recommended)
 
-```bash
-# Clone the repository
-cd /path/to/lampster-ha-integration
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)
 
-# Install dependencies with uv
-uv sync
+1. Ensure [HACS](https://hacs.xyz/) is installed
+2. In Home Assistant, go to **HACS** → **Integrations**
+3. Click the **⋮** menu (top right) → **Custom repositories**
+4. Add repository URL: `https://github.com/yamanote1138/lampster-ha-integration`
+5. Category: **Integration**
+6. Click **Explore & Download Repositories**
+7. Search for "Lampster" and click **Download**
+8. Restart Home Assistant
+9. Go to **Settings** → **Devices & Services** → **Add Integration**
+10. Search for "Lampster" and follow the setup flow
 
-# Or use pip in a virtual environment
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -e .
+### Method 2: Manual Installation
+
+1. Copy the `custom_components/lampster` directory to your Home Assistant `config/custom_components/` directory:
+
+   ```bash
+   # On your HA machine
+   cd /config
+   mkdir -p custom_components
+   cp -r /path/to/lampster-ha-integration/custom_components/lampster custom_components/
+   ```
+
+2. Restart Home Assistant
+
+3. Go to **Settings** → **Devices & Services** → **Add Integration**
+
+4. Search for "Lampster" and follow the setup flow
+
+## Configuration
+
+### Automatic Discovery
+
+The integration will automatically discover Lampster devices via Bluetooth. When a device is found, you'll see a notification in Home Assistant to set it up.
+
+### Manual Setup
+
+1. Navigate to **Settings** → **Devices & Services**
+2. Click **Add Integration**
+3. Search for "Lampster"
+4. Select your device from the list
+5. Click **Submit**
+
+The integration will create a light entity named `light.lampster`.
+
+## Usage
+
+### Via UI
+
+Use the standard Home Assistant light controls:
+
+- **Power**: Toggle on/off
+- **Brightness**: Slide to adjust (0-100%)
+- **Color**: RGB color picker
+- **Temperature**: Warm to cool white slider
+
+### Via Automations
+
+```yaml
+# Turn on with specific RGB color
+service: light.turn_on
+target:
+  entity_id: light.lampster
+data:
+  rgb_color: [255, 0, 0]  # Red
+  brightness: 200
+
+# Set color temperature (warm white)
+service: light.turn_on
+target:
+  entity_id: light.lampster
+data:
+  color_temp_kelvin: 2700
+  brightness: 150
+
+# Turn off
+service: light.turn_off
+target:
+  entity_id: light.lampster
 ```
 
-### Discovery
+### Via Scripts
 
-Find your Lampster device:
+```yaml
+# script.yaml
+lampster_red:
+  alias: "Lampster: Red"
+  sequence:
+    - service: light.turn_on
+      target:
+        entity_id: light.lampster
+      data:
+        rgb_color: [255, 0, 0]
+        brightness: 255
 
-```bash
-uv run tests/test_discovery.py
+lampster_warm_white:
+  alias: "Lampster: Warm White"
+  sequence:
+    - service: light.turn_on
+      target:
+        entity_id: light.lampster
+      data:
+        color_temp_kelvin: 2700
+        brightness: 200
 ```
 
-This will scan for nearby Lampster devices and display their addresses. Copy the address for use in other tests.
+## Technical Details
 
-### Update Device Address
+### BLE Protocol
 
-Edit the test files and update `DEVICE_ADDRESS` with your device's address:
+Protocol based on reverse engineering by [Noki](https://github.com/Noki/the-lampster).
 
-```python
-DEVICE_ADDRESS = "XX:XX:XX:XX:XX:XX"  # Replace with your device address
-```
+**Device Information:**
+- Model: LA-2017B
+- Manufacturer: "The Lampster, the licitatie"
+- Hardware: 100B
+- Firmware: 10
 
-### Run Tests
+**BLE Characteristics:**
+- Mode: `01ff5554-ba5e-f4ee-5ca1-eb1e5e4b1ce0` (Handle 0x0020)
+- RGB: `01ff5559-ba5e-f4ee-5ca1-eb1e5e4b1ce0` (Handle 0x0029)
+- White: `01ff5556-ba5e-f4ee-5ca1-eb1e5e4b1ce0` (Handle 0x0024)
 
-Test each function individually:
+### Color Conversions
 
-```bash
-# Test power control
-uv run tests/test_power.py
+**RGB Mode:**
+- Home Assistant: 0-255 per channel
+- Device: 0-100 per channel
+- Brightness scaling applied during conversion
 
-# Test RGB colors
-uv run tests/test_rgb.py
-
-# Test white modes
-uv run tests/test_white.py
-
-# Run comprehensive test
-uv run tests/test_all_modes.py
-```
-
-## Usage Example
-
-```python
-import asyncio
-from lampster import LampsterClient, RGBColor, WhiteColor
-
-async def main():
-    # Connect to your Lampster
-    client = LampsterClient("XX:XX:XX:XX:XX:XX")
-    await client.connect()
-
-    # Turn on and set to red
-    await client.power_on()
-    await client.set_rgb_color(RGBColor(100, 0, 0))
-
-    # Switch to warm white
-    await client.set_white_color(WhiteColor(100, 0))
-
-    # Turn off
-    await client.power_off()
-    await client.disconnect()
-
-asyncio.run(main())
-```
-
-## Protocol Details
-
-The Lampster uses Bluetooth Low Energy (BLE) with three main characteristics:
-
-| Characteristic | Handle | Function |
-|----------------|--------|----------|
-| Mode Control | 0x0021 | Power on/off, mode selection |
-| RGB Control | 0x002a | RGB LED control (0-100 per channel) |
-| White Control | 0x0025 | Warm/Cold white LEDs (0-100 each) |
-
-### Commands
-
-**Mode Control** (Characteristic 0x0021):
-- `0xC0` - Power on
-- `0x40` - Power off
-- `0xA8` - RGB mode
-- `0xC8` - White mode
-- `0x28` - Off mode
-
-**RGB Control** (Characteristic 0x002a):
-- Format: `[RR, GG, BB]` where each value is 0x00-0x64 (0-100)
-
-**White Control** (Characteristic 0x0025):
-- Format: `[WW, CC]` where WW=warm white, CC=cold white (0x00-0x64)
-
-For complete protocol documentation, see: https://github.com/Noki/the-lampster
-
-## Project Structure
-
-```
-lampster-ha-integration/
-├── lampster/                  # Core library
-│   ├── client.py             # LampsterClient - main BLE control
-│   ├── constants.py          # BLE UUIDs and commands
-│   ├── models.py             # RGBColor, WhiteColor, LampState
-│   └── exceptions.py         # Custom exceptions
-│
-├── tests/                     # Phase 1: Local testing scripts
-│   ├── test_discovery.py     # Device discovery
-│   ├── test_power.py         # Power control testing
-│   ├── test_rgb.py           # RGB mode testing
-│   ├── test_white.py         # White mode testing
-│   └── test_all_modes.py     # Comprehensive testing
-│
-└── custom_components/         # Phase 2: HA integration (coming soon)
-    └── lampster/
-```
+**Color Temperature Mode:**
+- Home Assistant: Kelvin (2700K - 6500K)
+- Device: Warm/cold percentage (0-100 each)
+- Lower Kelvin = warmer = more warm LED
+- Higher Kelvin = cooler = more cold LED
 
 ## Troubleshooting
 
-### No devices found
-- Ensure your Lampster is powered on
-- Keep the lamp close to your computer (within 2 meters)
-- Check that Bluetooth is enabled on your system
-- Try power cycling the lamp
+### Integration doesn't appear
 
-### Connection fails
-- Verify the device address is correct
-- Unpair the device from system Bluetooth settings if previously paired
-- Try power cycling the lamp
-- Check signal strength (keep lamp close)
+1. Check that Bluetooth is enabled in Home Assistant
+2. Ensure the device is powered on and nearby (< 2m recommended)
+3. Check Home Assistant logs: **Settings** → **System** → **Logs**
+4. Look for errors containing "lampster"
 
-### Commands not working
-- Ensure connection is established before sending commands
-- Check logs with `logging.basicConfig(level=logging.DEBUG)`
-- Verify characteristic UUIDs match your device (use characteristic enumeration in test_discovery.py)
-- Some devices may have different UUIDs than documented
+### Device not discovered
 
-### Characteristic UUID issues
-The documented characteristic handles (0x0021, 0x0025, 0x002a) may be device-specific. To find your device's actual UUIDs:
+1. Ensure device name contains "Lamp" (should be "Lampster")
+2. Check Bluetooth range - move device closer
+3. Power cycle the device
+4. Restart Home Assistant
 
-1. Uncomment the characteristic enumeration in `tests/test_discovery.py`
-2. Run the discovery script to see all characteristics
-3. Update UUIDs in `lampster/constants.py` if needed
+### Connection issues
 
-## Development Roadmap
+1. Only one Bluetooth connection at a time - close the official app
+2. Power cycle the device
+3. Check Home Assistant logs for specific errors
+4. Ensure no other integrations are using the device
 
-### ✅ Phase 1: Local Testing (Complete)
-- [x] Core library implementation
-- [x] BLE client with bleak
-- [x] Discovery functionality
-- [x] Power control
-- [x] RGB color control
-- [x] White mode control
-- [x] Test scripts for validation
+### Colors not changing
 
-### 🚧 Phase 2: Home Assistant Integration (Next)
-- [ ] Integration manifest and setup
-- [ ] Config flow with device discovery
-- [ ] Light entity implementation
-- [ ] Color mode support (RGB + color temp)
-- [ ] Brightness control
-- [ ] State management
-- [ ] Testing in Home Assistant
+1. Verify device is connected (check entity state)
+2. Power cycle the device
+3. Remove and re-add the integration
+4. Check debug logs for BLE errors
 
-### 🔮 Phase 3: Polish & Release
-- [ ] Error handling improvements
-- [ ] Connection retry logic
-- [ ] HACS integration
-- [ ] Documentation
-- [ ] Community release
+### Enable Debug Logging
 
-## Contributing
+Add to `configuration.yaml`:
 
-Contributions are welcome! Please feel free to submit issues or pull requests.
+```yaml
+logger:
+  default: info
+  logs:
+    custom_components.lampster: debug
+    lampster: debug
+```
 
-When contributing:
-- Follow the existing code style
-- Add tests for new functionality
-- Update documentation as needed
-- Properly attribute any protocol discoveries to Noki's work
+Then restart Home Assistant.
+
+## Known Limitations
+
+1. **Single Connection**: Device only supports one Bluetooth connection at a time
+2. **No Button Control**: Physical button disabled when using BLE (by design)
+3. **State Persistence**: Device remembers last color even when powered off
+4. **Range**: Bluetooth LE has limited range (~10m line of sight, less through walls)
+5. **Power Off from RGB**: Requires switching to white mode first (handled automatically)
+
+## Development
+
+### Project Structure
+
+```
+custom_components/lampster/
+├── __init__.py          # Integration setup
+├── manifest.json        # Integration metadata
+├── const.py            # Constants
+├── config_flow.py      # Discovery and config UI
+├── light.py            # Light entity implementation
+├── strings.json        # UI strings
+└── translations/
+    └── en.json         # English translations
+```
+
+### Core Library
+
+The integration uses the `lampster` Python library for BLE communication. See the main README for library documentation.
+
+### Testing
+
+1. Enable debug logging (see above)
+2. Monitor logs: `tail -f /config/home-assistant.log | grep lampster`
+3. Test basic operations: on/off, RGB colors, white temperatures
+4. Test automations and scripts
+5. Test device reconnection (power cycle device)
+
+## Attribution
+
+All BLE protocol information based on reverse engineering by **[Noki](https://github.com/Noki/the-lampster)**.
 
 ## License
 
-MIT License (coming soon)
-
-## Credits
-
-- **Protocol Documentation**: [Noki](https://github.com/Noki) - Reverse engineered the BLE protocol
-- **Integration Development**: [Your Name]
-- **Home Assistant**: [https://www.home-assistant.io](https://www.home-assistant.io)
-- **Bleak Library**: Cross-platform BLE library for Python
+MIT License - See LICENSE file for details
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/lampster-ha-integration/issues)
-- **Protocol Questions**: See [Noki's repository](https://github.com/Noki/the-lampster)
-- **Home Assistant**: [Home Assistant Community](https://community.home-assistant.io)
-
----
-
-Made with ❤️ for The Lampster community
+- **Issues**: [GitHub Issues](https://github.com/yamanote1138/lampster-ha-integration/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yamanote1138/lampster-ha-integration/discussions)
+- **Protocol Documentation**: [Noki's the-lampster](https://github.com/Noki/the-lampster)
