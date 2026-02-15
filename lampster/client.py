@@ -107,8 +107,8 @@ class LampsterClient:
             raise ConnectionError("Not connected to device")
 
         try:
-            # Try write-without-response for mode switching
-            await self._client.write_gatt_char(CHAR_MODE, bytes([mode]), response=False)
+            # Use write-with-response for mode switching (per Noki's char-write-req)
+            await self._client.write_gatt_char(CHAR_MODE, bytes([mode]), response=True)
             _LOGGER.debug(f"Wrote mode: 0x{mode:02x}")
         except Exception as e:
             raise CommandError(f"Failed to write mode: {e}") from e

@@ -1,0 +1,88 @@
+======================================================================
+White Mode Test (With Fixed Protocol)
+======================================================================
+
+Test started: 2026-02-15 13:20:50
+Device: 66C9BEF2-A12D-B137-E5CE-A2B780CE0B8A
+
+Testing warm/cool white color control
+Note: Automatically recording all firmware state changes
+
+
+Connecting...
+✓ Connected
+
+Initial firmware state:
+  MODE: 0x48, RGB: [0, 1, 0], WHITE: [1, 0]
+
+Testing white temperatures:
+(Firmware state will be recorded after each command)
+
+[1/10] Setting: Full Warm White (100% warm)    White(warm=100, cold=0)
+          Firmware: MODE=0xc8, WHITE=[100, 0]
+          ✓ MATCH
+
+[2/10] Setting: Full Cold White (100% cold)    White(warm=0, cold=100)
+          Firmware: MODE=0xc8, WHITE=[0, 100]
+          ✓ MATCH
+
+[3/10] Setting: Balanced Mix (50/50)           White(warm=50, cold=50)
+          Firmware: MODE=0xc8, WHITE=[50, 50]
+          ✓ MATCH
+
+[4/10] Setting: Warm Dominant (75% warm)       White(warm=75, cold=25)
+          Firmware: MODE=0xc8, WHITE=[75, 25]
+          ✓ MATCH
+
+[5/10] Setting: Cold Dominant (25% warm)       White(warm=25, cold=75)
+          Firmware: MODE=0xc8, WHITE=[25, 75]
+          ✓ MATCH
+
+[6/10] Setting: Dim Warm (25% warm)            White(warm=25, cold=0)
+          Firmware: MODE=0xc8, WHITE=[25, 0]
+          ✓ MATCH
+
+[7/10] Setting: Dim Cold (25% cold)            White(warm=0, cold=25)
+          Firmware: MODE=0xc8, WHITE=[0, 25]
+          ✓ MATCH
+
+[8/10] Setting: Bright Warm                    White(warm=100, cold=0)
+          Firmware: MODE=0xc8, WHITE=[100, 0]
+          ✓ MATCH
+
+[9/10] Setting: Bright Cold                    White(warm=0, cold=100)
+          Firmware: MODE=0xc8, WHITE=[0, 100]
+          ✓ MATCH
+
+[10/10] Setting: Very Dim (10/10)               White(warm=10, cold=10)
+          Firmware: MODE=0xc8, WHITE=[10, 10]
+          ✓ MATCH
+
+
+======================================================================
+White mode test complete!
+======================================================================
+
+Results: 10/10 commands matched firmware state
+
+🎉 WHITE MODE WORKING PERFECTLY!
+All commands were accepted and firmware state matches.
+
+Summary:
+  ✓ RGB mode: Working (verified earlier)
+  ✓ WHITE mode: Working
+  ✓ Protocol fix: response=True for MODE characteristic
+
+======================================================================
+Restoring button control...
+======================================================================
+
+Setting to dim warm white (button-compatible state)...
+
+✓ Test complete - lamp should respond to button presses
+
+Disconnected
+
+======================================================================
+Results saved to: /Users/spitfire/Projects/lampster-ha-integration/tests/white_mode_results_20260215_132050.txt
+======================================================================
