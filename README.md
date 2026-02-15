@@ -19,18 +19,25 @@ All protocol information, BLE characteristic mappings, and command specification
 
 ## Current Status
 
-**Phase 1: Local Testing (In Progress)** ✅
+**Phase 1: Local Testing** ✅ **COMPLETE** (v0.2.0)
 
-The core Python library and local testing scripts are complete. You can now:
-- Discover Lampster devices via BLE
-- Control power on/off
-- Set RGB colors
-- Set white color temperatures
-- Test all functionality on macOS
+The core Python library and BLE protocol are fully working:
+- ✅ Discover Lampster devices via BLE
+- ✅ RGB color control (7+ colors tested and working)
+- ✅ White color temperature control (10 variations tested - 100% success)
+- ✅ Mode switching (RGB ↔ WHITE)
+- ✅ Protocol fix: MODE characteristic requires `response=True`
+- ✅ Comprehensive test suite with automatic result recording
+- ✅ Button control behavior documented
 
-**Phase 2: Home Assistant Integration (Coming Soon)** 🚧
+**Known Behavior:**
+- BLE control and button control are mutually exclusive (expected)
+- BLE POWER_OFF command doesn't work (use WHITE mode to restore button)
+- Device auto-powers on when plugged in
 
-The full HA integration will be developed after Phase 1 validation.
+**Phase 2: Home Assistant Integration** 🚧 **READY TO START**
+
+Ready to build the full HA custom component on top of the validated core library.
 
 ## Requirements
 
