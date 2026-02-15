@@ -1,0 +1,25 @@
+{
+  "config": {
+    "step": {
+      "bluetooth_confirm": {
+        "description": "Do you want to add {name} to Home Assistant?",
+        "title": "Discovered Lampster Device"
+      },
+      "user": {
+        "data": {
+          "address": "Device"
+        },
+        "description": "Select your Lampster device",
+        "title": "Select Lampster"
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to device",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "Device is already configured",
+      "no_devices_found": "No Lampster devices found"
+    }
+  }
+}
