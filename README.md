@@ -15,6 +15,7 @@ Home Assistant custom integration for The Lampster, an RGB Bluetooth lamp (Model
 - ✅ **Power Control** - Turn on/off
 - ✅ **Touch Button Sync** - Touch button changes show up instantly while The Lampster is on
 - ✅ **Diagnostics** - Signal strength, connect/command times, internal temperature, connection status and Bluetooth uplink
+- ✅ **Dashboard Card** - A tile card in polished aluminum, rusted steel or The Lampster's own Army, Artsy and Color finishes, with rivets or screws; included, with nothing else to install
 - ✅ **Local Control** - No cloud required
 
 ## Requirements
@@ -150,6 +151,58 @@ data:
   transition: 600  # 10 minute wake-up
 ```
 
+### Dashboard card
+
+The integration includes a dashboard card, so there is nothing else to install: it adds the card to **Settings** → **Dashboards** → **Resources** by itself, keeps it up to date, and removes it when the last The Lampster is removed. To add the card, edit a dashboard, select **Add card**, and search for **The Lampster**.
+
+The card is Home Assistant's tile card in a finish of your choice. Every tile card option works the same way and appears in the same editor: name, state content, tap and hold actions, and features such as the brightness slider. Below them, the **The Lampster style** panel sets the finish:
+
+- **Collection** and **Style**: Metal (Polished Aluminum, Brushed Aluminum, Rusted Steel, or Painted in any color), Lampster Army, Lampster Artsy or Lampster Color. Collection **None** keeps your theme's own tile card and adds only the head, in a **Head color** of your choice, and the fasteners
+- **Head color**: the head takes the style's color (Match style), or any color you choose, with every style
+- **Randomize**: draws new reflections, rust, wear, splatter or sheen and keeps every other setting (every style except Brushed Aluminum)
+- **Features style**: the slider and other features sit on the style itself (Match style), on a flat patch of the style's base color without rust, wear or splatter (Flat), or in a console, with channels pressed into the panel (Console). In a console, the brightness slider keeps its shape and its bar looks like a slatted roll-up door ending in a raised ridge, the color temperature slider's marker is a round loupe in a beveled bezel of the card's material, filled with the color it is on, the color favorites are keys that press in (the one matching the light stays pressed), and the toggle is a slide with a beveled tab. With Flat and Console, the style still shows between the color favorites
+- **Fasteners**: Rivets, Phillips, Hex, Socket or None, matching the style or in any color
+- **Fastener spacing**: Corners only, or fasteners all the way around at 1/2, 1/4, 1/8, 1/16, 1/32 or 1/64 spacing. Fasteners that would touch the head or the features are left out. For one fastener at each end of a single-row card instead of in its corners, add an E to the spacing in YAML (see below)
+- **Color temperature**: on this card, the color temperature slider moves in steps of 100 K, and The Lampster follows it while it is dragged
+
+The color pickers list the theme colors (such as Teal or Amber). For any other color, type it into the picker as a CSS color, such as `#1f6f78`, `rgb(31, 111, 120)` or a color name like `goldenrod`, and select **Custom color**.
+
+The card's edge is drawn as a slightly raised panel. The tile card's Icon and Show entity picture options are left out of the editor, because the card shows the head there.
+
+In place of the tile card's icon, the card shows The Lampster's head, with the light's current color in the lens.
+
+```yaml
+type: custom:lampster-card
+entity: light.the_lampster
+features:
+  - type: light-brightness
+# The Lampster style
+style: rusted              # see the list below
+head_color: match          # match (the style's color), a theme color such as amber, or any CSS color
+pattern: 4242              # the reflections, rust, wear, splatter or sheen pattern
+features_style: match      # match, flat or console
+fasteners:
+  type: rivets             # rivets, phillips, hex, socket or none
+  color: match             # match, a theme color such as amber, or any CSS color
+  spacing: 4               # 0 (corners), 2, 4, 8, 16, 32 or 64; add E (such as 4E) for ends on a single row
+```
+
+For Painted, `paint_color` sets the paint of the panel (and of the head, unless `head_color` gives it a color of its own). With None, `head_color` must be a color, because there is no style color to match.
+
+| Option | Values | Default |
+|--------|--------|---------|
+| `style` | `none` (your theme's tile card), `polished`, `brushed`, `rusted`, `painted`, `army_black`, `army_blue`, `army_gold`, `army_green`, `army_red`, `army_white`, `artsy_black`, `artsy_gold`, `artsy_green`, `artsy_red`, `artsy_white`, `color_black`, `color_blue`, `color_gold`, `color_green`, `color_red` | `polished` |
+| `paint_color` | For `painted`: the panel's paint, as a theme color such as `teal` or any CSS color such as `"#1f6f78"` | `teal` |
+| `head_color` | The head's color: `match` (the style's color) or a theme or CSS color; with `none`, a color | `match`; `light-grey` for `none` |
+| `pattern` | For the styles with something to randomize (all but `brushed` and `none`): any whole number; each number draws a different pattern | The default look |
+| `features_style` | `match` (the style itself), `flat` (the style's base color only) or `console` (channels pressed into the panel); not used with `none` | `match` |
+| `fasteners` | A group of three options: | |
+| `  type` | `rivets`, `phillips`, `hex`, `socket` or `none` | `rivets` |
+| `  color` | `match` (follows the style), a theme color such as `amber`, or any CSS color | `match` |
+| `  spacing` | How many gaps each long edge is divided into: `0` (corners only), `2`, `4`, `8`, `16`, `32`, `64`. YAML only: add `E` (such as `4E`, or `0E` for ends only) to put one fastener at each end of a single-row card instead of in its corners. The visual editor shows the spacing without the E and keeps the E when you change the spacing there | `4` |
+
+The editor writes every option the chosen style uses into the YAML, defaults included, and removes the ones it does not use (for example `pattern` and `features_style` when you switch to None). All other options are the [tile card's](https://www.home-assistant.io/dashboards/tile/). The tile card's `icon` and `show_entity_picture` options have no effect, because the head is shown there.
+
 ### Via Automations
 
 ```yaml
@@ -275,6 +328,19 @@ Found on the device page under **Diagnostic**. Signal strength, Connect time, Co
 3. Check Home Assistant logs: **Settings** → **System** → **Logs**
 4. Look for errors containing "lampster"
 
+### Dashboard card shows "Custom element does not exist"
+
+The integration adds the card to the dashboard resources, which a dashboard reads from Home Assistant every time it opens. If a dashboard was opened while Home Assistant was still starting, the card may be missing until the page is reloaded once (in the Companion app, pull down to refresh).
+
+If your dashboard resources are defined in YAML (`lovelace:` `resource_mode: yaml`), the integration cannot add the resource and loads the card on every page instead. A browser can then show a stored copy of a page from before the card was available; reload the page once, or add the resource to your YAML yourself:
+
+```yaml
+lovelace:
+  resources:
+    - url: /lampster/lampster-card.js
+      type: module
+```
+
 ### Device not discovered
 
 1. Ensure The Lampster advertises a Bluetooth name containing "Lamp" (it should be "Lampster")
@@ -378,6 +444,9 @@ Then restart Home Assistant.
 ```
 custom_components/lampster/
 ├── __init__.py          # Integration setup
+├── card.py             # Serves the dashboard card
+├── frontend/
+│   └── lampster-card.js # The dashboard card
 ├── manifest.json        # Integration metadata
 ├── const.py            # Constants
 ├── config_flow.py      # Discovery and config UI
@@ -399,6 +468,14 @@ Automated tests live in `tests/automated/` and run on GitHub for every push, tog
 pip install pytest-homeassistant-custom-component
 pytest
 ```
+
+The dashboard card is tested by the pages in `tests/card/`, which load the card with stand-ins for the Home Assistant frontend and check how it draws (styles, fasteners, features styles, the editor). They run on GitHub for every push too; to run them locally with Chrome, Chromium or Edge:
+
+```bash
+python tests/card/run_card_tests.py
+```
+
+To look at the cards, open a page such as `tests/card/features.html` in the browser.
 
 The other scripts in `tests/` control a real lamp and are run by hand, for example `python tests/probe_button.py`.
 

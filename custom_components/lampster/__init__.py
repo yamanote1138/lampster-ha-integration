@@ -9,8 +9,11 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ADDRESS, EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import Event, HomeAssistant
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.typing import ConfigType
 
+from .card import async_register_card, async_remove_card_resource
 from .const import (
     CONF_DISCONNECT_AFTER,
     CONF_RECONNECT_INTERVAL,
@@ -25,6 +28,14 @@ from .coordinator import LampsterCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.LIGHT, Platform.NUMBER, Platform.SENSOR]
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Set up The Lampster: serve its dashboard card."""
+    await async_register_card(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -94,3 +105,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await coordinator.async_stop()
 
     return unload_ok
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Remove the card from the dashboard resources with the last The Lampster."""
+    others = [e for e in hass.config_entries.async_entries(DOMAIN) if e.entry_id != entry.entry_id]
+    if not others:
+        await async_remove_card_resource(hass)

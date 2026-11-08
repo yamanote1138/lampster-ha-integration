@@ -1,0 +1,123 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>The Lampster card: editor</title>
+<style>
+  body { margin: 0; padding: 16px; background: #120b19; color: #ddd; font: 13px Roboto, "Segoe UI", sans-serif; }
+  pre { white-space: pre-wrap; }
+</style>
+<script src="stand-ins.js"></script>
+<script src="../../custom_components/lampster/frontend/lampster-card.js"></script>
+<div id="cards"></div>
+<pre id="report" data-result="running">running</pre>
+<script>
+  // The editor: written-out options, the tile card's own editor with the
+  // overridden options left out, and settings that keep an E from YAML
+  const problems = [], passed = [];
+  window.addEventListener("error", (ev) => problems.push(`Page error: ${ev.message}`));
+  window.addEventListener("unhandledrejection", (ev) => problems.push(`Unhandled promise rejection: ${ev.reason}`));
+  const check = (ok, message) => (ok ? passed : problems).push(message);
+
+  (async () => {
+    const editor = document.createElement("lampster-card-editor");
+    const events = [];
+    editor.addEventListener("config-changed", (ev) => events.push(ev.detail.config));
+    editor.hass = makeHass();
+    document.body.append(editor);
+
+    // Opening a card with options left out writes them out, "match" included
+    editor.setConfig({ type: "custom:lampster-card", entity: "light.the_lampster", features: [{ type: "light-brightness" }] });
+    const written = events.at(-1) ?? {};
+    check(written.style === "polished", `style written out (${written.style})`);
+    check(written.features_style === "match", `features_style written out as match (${written.features_style})`);
+    check(JSON.stringify(written.fasteners) === JSON.stringify({ type: "rivets", color: "match", spacing: 4 }),
+      `fasteners written out as a group with color match (${JSON.stringify(written.fasteners)})`);
+    check(!("paint_color" in written) && !("pattern" in written), "no paint_color or pattern for Polished Aluminum until set");
+    check(written.head_color === "match", `head_color written out as match (${written.head_color})`);
+
+    // The tile card's editor is used, without Icon and Show entity picture
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    const tileEditor = editor.shadowRoot.querySelector("lampster-tile-card-editor, hui-tile-card-editor");
+    check(Boolean(tileEditor), "the tile card's editor is shown");
+    const names = tileEditor?.schemaNames ?? "";
+    check(!names.includes('"icon"') && !names.includes('"show_entity_picture"'), "Icon and Show entity picture are left out");
+    check(names.includes('"color"') && names.includes('"hide_state"'), "the other tile card options stay");
+    const tileKeys = Object.keys(tileEditor?.config ?? {});
+    check(!tileKeys.some((k) => ["style", "paint_color", "head_color", "pattern", "features_style", "fasteners"].includes(k)),
+      `the tile card's editor gets only tile card options (${tileKeys.join(", ")})`);
+
+    // A spacing with an E (YAML only) shows as the fraction and keeps its E
+    events.length = 0;
+    editor.setConfig({ ...written, fasteners: { ...written.fasteners, spacing: "8E" } });
+    const form = editor.shadowRoot.getElementById("fasteners");
+    check(form.data?.fastener_spacing === "8", `8E shows as 1/8 in the editor (${form.data?.fastener_spacing})`);
+    form.dispatchEvent(new CustomEvent("value-changed", { detail: { value: { ...form.data, fastener_spacing: "16" } } }));
+    check(events.at(-1)?.fasteners?.spacing === "16E", `changing the spacing keeps the E (${events.at(-1)?.fasteners?.spacing})`);
+    form.dispatchEvent(new CustomEvent("value-changed", { detail: { value: { ...form.data, fastener_color: "amber" } } }));
+    check(events.at(-1)?.fasteners?.color === "amber", `the fastener color goes into the fasteners group (${events.at(-1)?.fasteners?.color})`);
+
+    // Choosing a fastener picture sets fasteners.type; None leaves only the type
+    editor.shadowRoot.querySelector('#fastenerChoices [data-value="none"]').click();
+    check(JSON.stringify(events.at(-1)?.fasteners) === JSON.stringify({ type: "none" }), `fasteners none keeps only the type (${JSON.stringify(events.at(-1)?.fasteners)})`);
+    editor.shadowRoot.querySelector('#fastenerChoices [data-value="hex"]').click();
+    check(events.at(-1)?.fasteners?.type === "hex" && events.at(-1)?.fasteners?.spacing === 4, "a fastener type after None gets the default spacing");
+
+    // Switching styles removes the options the new style does not use
+    const look = editor.shadowRoot.getElementById("look");
+    editor.setConfig({ ...events.at(-1), style: "rusted", pattern: 4242, features_style: "console" });
+    look.dispatchEvent(new CustomEvent("value-changed", { detail: { value: { ...look.data, collection: "none" } } }));
+    let now = events.at(-1);
+    check(now.style === "none" && !("pattern" in now) && !("features_style" in now), `None drops pattern and features_style (${Object.keys(now).join(", ")})`);
+    check(now.head_color === "light-grey" && !("paint_color" in now), `None gets a head color instead of match (${now.head_color})`);
+    editor.setConfig({ ...now, style: "painted", features_style: "flat" });
+    now = events.at(-1) ?? now;
+    look.dispatchEvent(new CustomEvent("value-changed", { detail: { value: { ...look.data, style: "brushed" } } }));
+    now = events.at(-1);
+    check(now.style === "brushed" && !("paint_color" in now) && !("pattern" in now), `Brushed Aluminum drops paint_color and pattern (${Object.keys(now).join(", ")})`);
+
+    // The editor repairs nothing: settings the card refuses are refused
+    // (Home Assistant then shows the error with the code editor)
+    const good = events.at(-1);
+    for (const [bad, expected] of [[{ fasteners: "rivets" }, "group"], [{ style: "nope" }, "Unknown style"],
+      [{ fastener_color: "red" }, "fastener_color"], [{ fastener_spacing: 8 }, "fastener_spacing"],
+      [{ style: "none", head_color: "match" }, "head_color"]]) {
+      events.length = 0;
+      try {
+        editor.setConfig({ ...good, ...bad });
+        check(false, `the editor accepted ${JSON.stringify(bad)}`);
+      } catch (err) {
+        check(err.message.includes(expected) && events.length === 0, `the editor refuses ${JSON.stringify(bad)} and changes nothing: ${err.message}`);
+      }
+    }
+
+    // A new editor refused by the tile card's editor (which loads after it opens) says so
+    const fresh = document.createElement("lampster-card-editor");
+    const freshEvents = [];
+    fresh.addEventListener("config-changed", (ev) => freshEvents.push(ev.detail.config));
+    fresh.hass = makeHass();
+    document.body.append(fresh);
+    fresh.setConfig({ ...good, fastener_color: "red" });
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    const alert = fresh.shadowRoot.querySelector("ha-alert");
+    check(Boolean(alert) && alert.textContent.includes("fastener_color"), `the tile card's refusal is shown (${alert?.textContent})`);
+    check(freshEvents.every((c) => c.fastener_color === "red"), "the unknown option is left for the user to remove");
+
+    // Invalid settings show a clear error on the card
+    for (const [bad, expected] of [[{ style: "nope" }, "Unknown style"], [{ fasteners: { spacing: 3 } }, "spacing"],
+      [{ fasteners: { type: "nails" } }, "type"], [{ fasteners: "rivets" }, "group"], [{ features_style: "channel" }, "features_style"]]) {
+      try {
+        document.createElement("lampster-card").setConfig({ type: "custom:lampster-card", entity: "light.the_lampster", ...bad });
+        check(false, `no error for ${JSON.stringify(bad)}`);
+      } catch (err) {
+        check(err.message.includes(expected), `error for ${JSON.stringify(bad)}: ${err.message}`);
+      }
+    }
+
+    const report = document.getElementById("report");
+    report.dataset.result = problems.length ? "fail" : "pass";
+    report.textContent = [...problems.map((p) => `FAIL ${p}`), ...passed.map((p) => `ok   ${p}`)].join("\n");
+  })().catch((err) => {
+    const report = document.getElementById("report");
+    report.dataset.result = "fail";
+    report.textContent = `FAIL ${err.stack || err}`;
+  });
+</script>
