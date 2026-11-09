@@ -103,6 +103,10 @@ Use the standard Home Assistant light controls:
 - **Color**: RGB color picker
 - **Temperature**: Warm to cool white slider
 
+### Dashboard card
+
+[The Lampster card](https://github.com/GizmoGoody/lampster-card) is an optional dashboard card for The Lampster. It is a separate project that is not tested or maintained here. It is Home Assistant's tile card in metal or The Lampster's own finishes, with fasteners and a lens that shows the light's color, and it installs from the Marketplace. See its README for the steps and options.
+
 ### Effects and transitions
 
 Effects are chosen from the light card or with `light.turn_on`:
