@@ -12,7 +12,7 @@ from .exceptions import (
 )
 from .models import LampState, RGBColor, WhiteColor
 
-__version__ = "1.1.1"
+__version__ = "1.2.0"
 
 __all__ = [
     "LampsterClient",
