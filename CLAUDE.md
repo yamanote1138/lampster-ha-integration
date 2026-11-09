@@ -150,12 +150,14 @@ This project uses semantic versioning (MAJOR.MINOR.PATCH):
 - **MINOR**: New features, non-breaking changes
 - **PATCH**: Bug fixes, documentation updates
 
-### Current Version: 1.1.0
+### Current Version: 1.1.1
 - Phase 1 and Phase 2 complete
 - Fixes setup on current Home Assistant (issue #1)
 - Stays connected while on; touch button changes arrive as notifications
 - Options flow for connection behavior; effects; transitions; diagnostics
   and repairs; automated tests (tests/automated) and GitHub Actions
+- 1.1.1: fade-off keeps the levels, no flash on turn-on, Start effect form
+  fixed; tested on a real lamp
 - See README.md for the full feature list and protocol notes
 
 ### Version History
@@ -410,6 +412,6 @@ MIT License (see LICENSE file)
 
 ---
 
-**Last Updated**: 2026-09-27
+**Last Updated**: 2026-11-08
 **Project Phase**: Phase 2 complete - Home Assistant integration
-**Current Version**: 1.1.0
+**Current Version**: 1.1.1
