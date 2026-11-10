@@ -154,7 +154,7 @@ This project uses semantic versioning (MAJOR.MINOR.PATCH):
 - **MINOR**: New features, non-breaking changes
 - **PATCH**: Bug fixes, documentation updates
 
-### Current Version: 1.2.0
+### Current Version: 1.2.1
 - Phase 1 and Phase 2 complete
 - Fixes setup on current Home Assistant (issue #1)
 - Stays connected while on; touch button changes arrive as notifications
@@ -163,6 +163,8 @@ This project uses semantic versioning (MAJOR.MINOR.PATCH):
 - 1.2.0: Spin, Fireworks and Pursuit effects; Start/Stop effect actions;
   Periodic or Constant connection; fade-off keeps the levels; tested on a
   real lamp
+- 1.2.1: README covers the separate dashboard card (purpose and install);
+  setup explains the lamp isn't in range when it finds none
 - See README.md for the full feature list and protocol notes
 
 ### Version History
@@ -417,6 +419,6 @@ MIT License (see LICENSE file)
 
 ---
 
-**Last Updated**: 2026-11-08
+**Last Updated**: 2026-11-09
 **Project Phase**: Phase 2 complete - Home Assistant integration
-**Current Version**: 1.2.0
+**Current Version**: 1.2.1
