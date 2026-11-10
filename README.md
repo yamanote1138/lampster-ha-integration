@@ -105,7 +105,15 @@ Use the standard Home Assistant light controls:
 
 ### Dashboard card
 
-[The Lampster card](https://github.com/GizmoGoody/lampster-card) is an optional dashboard card for The Lampster. It is a separate project that is not tested or maintained here. It is Home Assistant's tile card in metal or The Lampster's own finishes, with fasteners and a lens that shows the light's color, and it installs from the Marketplace. See its README for the steps and options.
+[The Lampster card](https://github.com/GizmoGoody/lampster-card) is an optional dashboard card that makes the light look like The Lampster: Home Assistant's tile card in a metal or Lampster finish, with fasteners and a lens that shows the light's current color. It's a separate project, not tested or maintained here.
+
+To install it on Home Assistant 2026.11 or later:
+
+1. Go to **Settings** → **Marketplace**, select **Add from link**, and enter `GizmoGoody/lampster-card`
+2. Open **The Lampster card**, select **Install**, then reload the browser page
+3. Edit a dashboard, select **Add card**, and search for **The Lampster**
+
+On older versions, add the same repository in HACS as a custom repository with the type **Dashboard**. See the card's README for styles, options and troubleshooting.
 
 ### Effects and transitions
 
